@@ -16,4 +16,4 @@ const propertySchema = new mongoose.Schema({
 });
 
 // 🔥 IMPORTANT: force collection name = "property"
-module.exports = mongoose.model("Property", propertySchema, "property");
+module.exports = mongoose.model("Property", propertySchema);
