@@ -1,5 +1,7 @@
 const propertyService = require("../services/propertyService");
+const Property = require("../models/Property");
 
+// 🔹 Main webhook handler
 const handleIncomingMessage = async (req, res) => {
   try {
     const { message, messageId } = req.body;
@@ -66,4 +68,21 @@ const handleIncomingMessage = async (req, res) => {
   }
 };
 
-module.exports = { handleIncomingMessage };
+// 🔹 DEBUG API (OUTSIDE function)
+const debugDb = async (req, res) => {
+  try {
+    const data = await Property.find();
+
+    return res.json({
+      count: data.length,
+      data
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = {
+  handleIncomingMessage,
+  debugDb
+};
