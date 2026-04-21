@@ -1,11 +1,22 @@
-const propertyService = require('../services/propertyService');
+const propertyService = require("../services/propertyService");
 
-const handleWhatsAppWebhook = async (req, res, next) => {
+exports.handleIncomingMessage = async (req, res, next) => {
   try {
-    const { message, from } = req.body;
+    const { message, from, messageId } = req.body;
 
+    // ✅ Validation
     if (!message) {
-      return res.json({ text: "Invalid request" });
+      return res.status(400).json({
+        status: "error",
+        message: '"message" is required'
+      });
+    }
+
+    if (!messageId) {
+      return res.status(400).json({
+        status: "error",
+        message: '"messageId" is required'
+      });
     }
 
     const userMsg = message.trim().toLowerCase();
@@ -17,13 +28,14 @@ const handleWhatsAppWebhook = async (req, res, next) => {
       });
     }
 
-    // 🟢 2. Property ID Handling
-    const isPropertyId = /^p\d{1,5}$/i.test(userMsg);
+    // 🟢 2. Property ID handling
+    const isPropertyId = /^p\d+$/i.test(userMsg);
 
     if (isPropertyId) {
       const propertyId = userMsg.toUpperCase();
 
-      const property = await propertyService.getPropertyById(propertyId);
+      // ✅ FIXED: using correct function
+      const property = await propertyService.getPropertyResponseById(propertyId);
 
       if (!property) {
         return res.json({
@@ -32,24 +44,25 @@ const handleWhatsAppWebhook = async (req, res, next) => {
       }
 
       return res.json({
-        text: `${property.title}\n${property.location}\n${property.price}\n${property.bedrooms} BHK`,
+        text: `🏠 ${property.title}\n📍 ${property.location}\n💰 ${property.price}\n🛏 ${property.bedrooms} BHK`,
         document: {
           url: property.pdfLink,
-          filename: `${property.propertyId}.pdf`
+          filename: `${propertyId}.pdf`
         }
       });
     }
 
-    // 🔁 3. Fallback
+    // 🟢 3. Default fallback
     return res.json({
-      text: "Send 'hi' or a valid Property ID like P101"
+      text: "❓ I didn't understand that.\nSend 'hi' or a Property ID like P101."
     });
 
-  } catch (err) {
-    next(err);
-  }
-};
+  } catch (error) {
+    console.error("Webhook Error:", error);
 
-module.exports = {
-  handleWhatsAppWebhook
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error"
+    });
+  }
 };

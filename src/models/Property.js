@@ -40,4 +40,6 @@ const propertySchema = new mongoose.Schema(
   }
 );
 
+propertySchema.index({ propertyId: 1 }, { unique: true });
+
 module.exports = mongoose.model("Property", propertySchema);
