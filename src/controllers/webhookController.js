@@ -45,11 +45,14 @@ const handleIncomingMessage = async (req, res) => {
       }
 
       return res.json({
-        text: `🏠 ${property.title}\n📍 ${property.location}\n💰 ${property.price}\n🛏 ${property.bedrooms} BHK`,
+        messaging_product: "whatsapp",
+        to: req.body.from,
+        type: "document",
         document: {
-          url: property.pdfLink,
-          filename: `${propertyId}.pdf`
-        }
+          link: property.pdfLink,
+          filename: `${propertyId}.pdf`,
+          caption: `🏠 ${property.title}\n📍 ${property.location}\n💰 ${property.price}\n🛏 ${property.bedrooms} BHK`
+          }
       });
     }
 
