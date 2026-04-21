@@ -1,0 +1,28 @@
+{
+  "name": "property-bot",
+  "version": "1.0.0",
+  "description": "Production-ready Express microservice for property lookup via webhook.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node src/utils/seedProperties.js"
+  },
+  "keywords": [
+    "express",
+    "mongodb",
+    "webhook",
+    "whatsapp",
+    "property"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "joi": "^17.13.3",
+    "mongoose": "^8.9.5",
+    "winston": "^3.19.0"
+  }
+}
