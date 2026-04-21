@@ -1,10 +1,10 @@
 const propertyService = require("../services/propertyService");
 
-exports.handleIncomingMessage = async (req, res, next) => {
+const handleIncomingMessage = async (req, res) => {
   try {
-    const { message, from, messageId } = req.body;
+    const { message, messageId } = req.body;
 
-    // ✅ Validation
+    // Validation
     if (!message) {
       return res.status(400).json({
         status: "error",
@@ -21,20 +21,19 @@ exports.handleIncomingMessage = async (req, res, next) => {
 
     const userMsg = message.trim().toLowerCase();
 
-    // 🟢 1. Greeting
+    // Greeting
     if (["hi", "hello", "hey"].includes(userMsg)) {
       return res.json({
         text: "Hello 👋\nSend me a Property ID like P101 to get details."
       });
     }
 
-    // 🟢 2. Property ID handling
+    // Property ID
     const isPropertyId = /^p\d+$/i.test(userMsg);
 
     if (isPropertyId) {
       const propertyId = userMsg.toUpperCase();
 
-      // ✅ FIXED: using correct function
       const property = await propertyService.getPropertyResponseById(propertyId);
 
       if (!property) {
@@ -52,9 +51,9 @@ exports.handleIncomingMessage = async (req, res, next) => {
       });
     }
 
-    // 🟢 3. Default fallback
+    // Default
     return res.json({
-      text: "❓ I didn't understand that.\nSend 'hi' or a Property ID like P101."
+      text: "❓ Send 'hi' or a Property ID like P101."
     });
 
   } catch (error) {
@@ -66,3 +65,5 @@ exports.handleIncomingMessage = async (req, res, next) => {
     });
   }
 };
+
+module.exports = { handleIncomingMessage };
