@@ -28,7 +28,7 @@ const handleIncomingMessage = async (req, res) => {
       });
     }
 
-    // Property ID
+    // Property ID detection
     const isPropertyId = /^p\d+$/i.test(userMsg);
 
     if (isPropertyId) {
@@ -51,7 +51,7 @@ const handleIncomingMessage = async (req, res) => {
       });
     }
 
-    // Default
+    // Default fallback
     return res.json({
       text: "❓ Send 'hi' or a Property ID like P101."
     });
