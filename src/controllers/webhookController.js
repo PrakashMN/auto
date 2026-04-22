@@ -1,27 +1,39 @@
 const propertyService = require("../services/propertyService");
-const Property = require("../models/Property");
 
-// 🔹 Main webhook handler
+// 🔐 VERIFY WEBHOOK (Meta requirement)
+const verifyWebhook = (req, res) => {
+  const VERIFY_TOKEN = "myverifytoken123";
+
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode && token === VERIFY_TOKEN) {
+    console.log("✅ Webhook verified");
+    return res.status(200).send(challenge);
+  } else {
+    console.log("❌ Webhook verification failed");
+    return res.sendStatus(403);
+  }
+};
+
+// 📩 HANDLE INCOMING MESSAGE
 const handleIncomingMessage = async (req, res) => {
   try {
-    const { message, messageId } = req.body;
+    console.log("📩 Incoming:", JSON.stringify(req.body, null, 2));
 
-    // Validation
-    if (!message) {
-      return res.status(400).json({
-        status: "error",
-        message: '"message" is required'
-      });
+    // Meta sends nested structure
+    const entry = req.body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const value = changes?.value;
+    const messages = value?.messages?.[0];
+
+    if (!messages) {
+      return res.sendStatus(200);
     }
 
-    if (!messageId) {
-      return res.status(400).json({
-        status: "error",
-        message: '"messageId" is required'
-      });
-    }
-
-    const userMsg = message.trim().toLowerCase();
+    const userMsg = messages.text?.body?.trim().toLowerCase();
+    const from = messages.from;
 
     // Greeting
     if (["hi", "hello", "hey"].includes(userMsg)) {
@@ -53,36 +65,29 @@ const handleIncomingMessage = async (req, res) => {
       });
     }
 
-    // Default fallback
     return res.json({
       text: "❓ Send 'hi' or a Property ID like P101."
     });
 
   } catch (error) {
-    console.error("Webhook Error:", error);
-
-    return res.status(500).json({
-      status: "error",
-      message: "Internal server error"
-    });
+    console.error("❌ Webhook Error:", error);
+    return res.sendStatus(500);
   }
 };
 
-// 🔹 DEBUG API (OUTSIDE function)
+// 🧪 DEBUG ROUTE
 const debugDb = async (req, res) => {
-  try {
-    const data = await Property.find();
+  const Property = require("../models/Property");
+  const data = await Property.find();
 
-    return res.json({
-      count: data.length,
-      data
-    });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
+  return res.json({
+    count: data.length,
+    data
+  });
 };
 
 module.exports = {
   handleIncomingMessage,
+  verifyWebhook,
   debugDb
 };

@@ -6,21 +6,10 @@ const normalizePropertyId = (propertyId) => {
 };
 
 const findPropertyById = async (propertyId) => {
-  try {
-    const normalizedPropertyId = normalizePropertyId(propertyId);
+  const normalizedPropertyId = normalizePropertyId(propertyId);
+  if (!normalizedPropertyId) return null;
 
-    console.log("🔍 Searching for:", normalizedPropertyId);
-
-    const all = await Property.find();
-    console.log("📦 ALL DATA FROM DB:", all);
-
-    if (!normalizedPropertyId) return null;
-
-    return await Property.findOne({ propertyId: normalizedPropertyId }).lean();
-  } catch (error) {
-    console.error("❌ DB ERROR:", error);
-    throw error;
-  }
+  return await Property.findOne({ propertyId: normalizedPropertyId }).lean();
 };
 
 const getPropertyResponseById = async (propertyId) => {
