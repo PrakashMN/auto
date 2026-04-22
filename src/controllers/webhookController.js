@@ -9,6 +9,8 @@ const verifyWebhook = (req, res) => {
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
+  console.log("VERIFY REQUEST:", req.query);
+
   if (mode === "subscribe" && token === VERIFY_TOKEN) {
     console.log("✅ Webhook verified");
     return res.status(200).send(challenge);
@@ -17,7 +19,6 @@ const verifyWebhook = (req, res) => {
     return res.sendStatus(403);
   }
 };
-
 // 📩 HANDLE INCOMING MESSAGE
 const handleIncomingMessage = async (req, res) => {
   try {
