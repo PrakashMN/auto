@@ -1,8 +1,9 @@
+const axios = require("axios");
 const propertyService = require("../services/propertyService");
 
-// 🔐 VERIFY WEBHOOK (Meta requirement)
+// 🔐 VERIFY WEBHOOK
 const verifyWebhook = (req, res) => {
-  const VERIFY_TOKEN = "myverifytoken123";
+  const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "myverifytoken123";
 
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
@@ -12,7 +13,7 @@ const verifyWebhook = (req, res) => {
     console.log("✅ Webhook verified");
     return res.status(200).send(challenge);
   } else {
-    console.log("❌ Webhook verification failed");
+    console.log("❌ Verification failed");
     return res.sendStatus(403);
   }
 };
@@ -22,68 +23,99 @@ const handleIncomingMessage = async (req, res) => {
   try {
     console.log("📩 Incoming:", JSON.stringify(req.body, null, 2));
 
-    // Meta sends nested structure
     const entry = req.body.entry?.[0];
     const changes = entry?.changes?.[0];
     const value = changes?.value;
     const messages = value?.messages?.[0];
 
-    if (!messages) {
+    if (!messages) return res.sendStatus(200);
+
+    const from = messages.from;
+    const userMsg = messages.text?.body?.trim().toLowerCase();
+
+    // 🔹 CONFIG (set these in Render ENV)
+    const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
+    const ACCESS_TOKEN = process.env.WHATSAPP_TOKEN;
+
+    // 🔹 Greeting
+    if (["hi", "hello", "hey"].includes(userMsg)) {
+      await sendText(from, "Hello 👋\nSend me a Property ID like P101.", PHONE_NUMBER_ID, ACCESS_TOKEN);
       return res.sendStatus(200);
     }
 
-    const userMsg = messages.text?.body?.trim().toLowerCase();
-    const from = messages.from;
-
-    // Greeting
-    if (["hi", "hello", "hey"].includes(userMsg)) {
-      return res.json({
-        text: "Hello 👋\nSend me a Property ID like P101 to get details."
-      });
-    }
-
-    // Property ID detection
+    // 🔹 Property ID check
     const isPropertyId = /^p\d+$/i.test(userMsg);
 
     if (isPropertyId) {
       const propertyId = userMsg.toUpperCase();
-
       const property = await propertyService.getPropertyResponseById(propertyId);
 
       if (!property) {
-        return res.json({
-          text: "❌ Property not found. Please check the ID."
-        });
+        await sendText(from, "❌ Property not found. Please check the ID.", PHONE_NUMBER_ID, ACCESS_TOKEN);
+        return res.sendStatus(200);
       }
 
-      return res.json({
-        text: `🏠 ${property.title}\n📍 ${property.location}\n💰 ${property.price}\n🛏 ${property.bedrooms} BHK`,
-        document: {
-          url: property.pdfLink,
-          filename: `${propertyId}.pdf`
-        }
-      });
+      await sendDocument(from, property, propertyId, PHONE_NUMBER_ID, ACCESS_TOKEN);
+      return res.sendStatus(200);
     }
 
-    return res.json({
-      text: "❓ Send 'hi' or a Property ID like P101."
-    });
+    // 🔹 Default
+    await sendText(from, "❓ Send 'hi' or a Property ID like P101.", PHONE_NUMBER_ID, ACCESS_TOKEN);
+    return res.sendStatus(200);
 
   } catch (error) {
-    console.error("❌ Webhook Error:", error);
+    console.error("❌ Webhook Error:", error.response?.data || error.message);
     return res.sendStatus(500);
   }
 };
 
-// 🧪 DEBUG ROUTE
+// 📤 SEND TEXT MESSAGE
+const sendText = async (to, text, phoneId, token) => {
+  await axios.post(
+    `https://graph.facebook.com/v18.0/${phoneId}/messages`,
+    {
+      messaging_product: "whatsapp",
+      to,
+      type: "text",
+      text: { body: text }
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    }
+  );
+};
+
+// 📤 SEND DOCUMENT MESSAGE
+const sendDocument = async (to, property, propertyId, phoneId, token) => {
+  await axios.post(
+    `https://graph.facebook.com/v18.0/${phoneId}/messages`,
+    {
+      messaging_product: "whatsapp",
+      to,
+      type: "document",
+      document: {
+        link: property.pdfLink,
+        filename: `${propertyId}.pdf`,
+        caption: `🏠 ${property.title}\n📍 ${property.location}\n💰 ${property.price}\n🛏 ${property.bedrooms} BHK`
+      }
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    }
+  );
+};
+
+// 🧪 DEBUG
 const debugDb = async (req, res) => {
   const Property = require("../models/Property");
   const data = await Property.find();
-
-  return res.json({
-    count: data.length,
-    data
-  });
+  return res.json({ count: data.length, data });
 };
 
 module.exports = {
